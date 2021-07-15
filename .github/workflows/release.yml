@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - release-*
+
+jobs:
+  release:
+    name: Package a release
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Create archive
+      run: |
+        find . -maxdepth 1 -mindepth 1 \
+          -not \( -name css -o -name documentation -o -name plugins \) \
+          -exec rm -rf {} +
+        find css -maxdepth 1 -mindepth 1 -not -name '*.compiled.css' -delete
+        rm -rf documentation/templates/python documentation/test* \
+          documentation/.* documentation/{__init__,python}.py \
+          plugins/.coveragerc plugins/m/{test,.gitignore,__init__.py} || :
+        cmake -E tar cf mcss.zip --format=zip $(ls)
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+      with: { files: mcss.zip }
